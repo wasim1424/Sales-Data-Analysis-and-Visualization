@@ -1,0 +1,49 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import geopandas as gpd
+
+# Load the sales dataset
+sales_data = pd.read_csv('sales_data.csv')
+
+# Data Cleaning
+sales_data.dropna(inplace=True)
+sales_data.drop_duplicates(inplace=True)
+
+# Convert date column to datetime
+sales_data['date'] = pd.to_datetime(sales_data['date'])
+
+# Exploratory Data Analysis (EDA)
+# Sales trends over time
+sales_trends = sales_data.groupby(sales_data['date'].dt.to_period('M')).agg({'revenue': 'sum'}).reset_index()
+sales_trends['date'] = sales_trends['date'].dt.to_timestamp()
+
+plt.figure(figsize=(12, 6))
+plt.plot(sales_trends['date'], sales_trends['revenue'], marker='o')
+plt.title('Monthly Sales Trends')
+plt.xlabel('Date')
+plt.ylabel('Revenue')
+plt.grid(True)
+plt.show()
+
+# Top-selling products
+top_products = sales_data.groupby('product_name').agg({'quantity_sold': 'sum'}).sort_values(by='quantity_sold', ascending=False).head(10)
+plt.figure(figsize=(12, 6))
+sns.barplot(x=top_products.index, y=top_products['quantity_sold'])
+plt.title('Top 10 Best-Selling Products')
+plt.xlabel('Product Name')
+plt.ylabel('Quantity Sold')
+plt.xticks(rotation=45)
+plt.show()
+
+# Sales performance by region
+region_sales = sales_data.groupby('region').agg({'revenue': 'sum'}).reset_index()
+
+world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+region_sales_geo = world.merge(region_sales, left_on='name', right_on='region', how='left')
+
+fig, ax = plt.subplots(1, 1, figsize=(15, 10))
+region_sales_geo.plot(column='revenue', ax=ax, legend=True, legend_kwds={'label': "Revenue by Region", 'orientation': "horizontal"})
+plt.title('Sales Performance by Region')
+plt.show()
+
